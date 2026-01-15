@@ -4,26 +4,17 @@ import SwiftUI
 struct ClauditApp: App {
     @State private var statsManager = StatsManager()
 
-    init() {
-        PerfLog.start("appInit")
-    }
-
     var body: some Scene {
         // Menubar
         MenuBarExtra {
             MenuBarContentView()
                 .environment(statsManager)
-                .onAppear { PerfLog.end("menuOpen") }
         } label: {
             MenuBarIconView()
                 .environment(statsManager)
                 .task {
-                    PerfLog.end("appInit")
-                    PerfLog.start("startWatching")
                     statsManager.startWatching()
-                    PerfLog.end("startWatching")
                 }
-                .onTapGesture { PerfLog.start("menuOpen") }
         }
         .menuBarExtraStyle(.window)
 

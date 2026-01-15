@@ -40,7 +40,6 @@ final class DataManager {
             container = try ModelContainer(for: schema, configurations: config)
             context = ModelContext(container)
             context.autosaveEnabled = true
-            Self.logger.info("SwiftData initialized at \(storeURL.path)")
         } catch {
             // Schema mismatch - delete old database and retry
             Self.logger.warning("SwiftData schema error, resetting database: \(error.localizedDescription)")

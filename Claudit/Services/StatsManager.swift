@@ -307,7 +307,6 @@ final class StatsManager {
 
     /// Load cached data from SwiftData (instant)
     private func loadFromSwiftData() {
-        PerfLog.start("loadFromSwiftData")
         let dataManager = DataManager.shared
 
         // Load summary
@@ -344,13 +343,11 @@ final class StatsManager {
         }
 
         self.lastUpdated = summary.lastUpdated
-        PerfLog.end("loadFromSwiftData")
     }
 
     /// Parse JSONL files and update SwiftData (background)
     @MainActor
     private func parseAndUpdateSwiftData() async {
-        PerfLog.start("parseAndUpdateSwiftData")
         let pricing = SettingsManager.shared.modelPricing
         let dataManager = DataManager.shared
 
@@ -365,7 +362,6 @@ final class StatsManager {
 
         // Parse in background with a fresh parser instance (avoids actor isolation issues)
         let result = await Task.detached(priority: .utility) {
-            PerfLog.start("jsonlParsing")
             let parser = JSONLParser()
 
             // Daily usage: if bootstrapping, parse full month; otherwise just today
@@ -440,7 +436,6 @@ final class StatsManager {
                 }
             }
 
-            PerfLog.end("jsonlParsing")
             return (dailyUsage, weekProjects, monthProjects, allTimeProjects, recommendations)
         }.value
 
@@ -486,7 +481,6 @@ final class StatsManager {
         loadFromSwiftData()
         self.isLoading = false
         self.lastUpdated = Date()
-        PerfLog.end("parseAndUpdateSwiftData")
     }
 
     /// Periodically refresh usage data
@@ -503,35 +497,16 @@ final class StatsManager {
 
     /// Fetch real-time usage from Anthropic API
     func fetchUsageFromAPI() async {
-        PerfLog.start("fetchUsageFromAPI")
         do {
             let response = try await UsageAPI.fetchUsage()
             self.usageResponse = response
             self.usageError = nil
             self.subscriptionType = UsageAPI.getSubscriptionType()
 
-            // DEBUG: Log reset times
-            #if DEBUG
-            print("🔍 Quota Reset Times:")
-            if let session = response.fiveHour {
-                print("  Session: \(session.resetsAt) → \(session.resetsAtDate?.description ?? "NIL")")
-            }
-            if let weekly = response.sevenDay {
-                print("  Weekly: \(weekly.resetsAt) → \(weekly.resetsAtDate?.description ?? "NIL")")
-            }
-            if let sonnet = response.sevenDaySonnet {
-                print("  Sonnet: \(sonnet.resetsAt) → \(sonnet.resetsAtDate?.description ?? "NIL")")
-            }
-            if let opus = response.sevenDayOpus {
-                print("  Opus: \(opus.resetsAt) → \(opus.resetsAtDate?.description ?? "NIL")")
-            }
-            #endif
-
             NotificationManager.shared.checkAndSendAlerts(for: response)
         } catch {
             self.usageError = error.localizedDescription
         }
-        PerfLog.end("fetchUsageFromAPI")
     }
 
     private func setupFileWatcher() {
