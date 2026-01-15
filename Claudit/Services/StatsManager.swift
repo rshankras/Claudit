@@ -14,8 +14,13 @@ final class StatsManager {
     private(set) var todayUsage: AggregatedUsage = AggregatedUsage()
     private(set) var dailyUsageFromJSONL: [Date: AggregatedUsage] = [:]
 
-    // Project breakdown (this week)
-    private(set) var projectCosts: [ProjectUsage] = []
+    // Project breakdown by time range
+    private(set) var projectCostsWeek: [ProjectUsage] = []    // 7 days
+    private(set) var projectCostsMonth: [ProjectUsage] = []   // 30 days
+    private(set) var projectCostsAllTime: [ProjectUsage] = [] // All time
+
+    // Legacy alias for backward compatibility
+    var projectCosts: [ProjectUsage] { projectCostsWeek }
 
     // Model usage recommendations (today)
     private(set) var recommendations: [ModelRecommendation] = []
@@ -327,7 +332,7 @@ final class StatsManager {
 
         // Load project costs (use cached cost from SwiftData)
         let cachedProjects = dataManager.getProjectUsage()
-        self.projectCosts = cachedProjects.map { cached in
+        self.projectCostsWeek = cachedProjects.map { cached in
             var usage = AggregatedUsage()
             usage.inputTokens = cached.inputTokens
             usage.outputTokens = cached.outputTokens
@@ -367,8 +372,10 @@ final class StatsManager {
             let dailyStart = needsBootstrap ? monthStart : today
             let dailyUsage = parser.dailyUsage(from: dailyStart, to: endDate)
 
-            // Project usage: parse FULL WEEK (need complete week breakdown)
-            let projectUsage = parser.usageByProject(from: weekStart, to: endDate)
+            // Project usage: parse for WEEK, MONTH, and ALL TIME
+            let weekProjects = parser.usageByProject(from: weekStart, to: endDate)
+            let monthProjects = parser.usageByProject(from: monthStart, to: endDate)
+            let allTimeProjects = parser.usageByProject(from: Date.distantPast, to: endDate)
 
             // Recommendations: parse only TODAY
             let todayEntries = parser.entries(from: today, to: endDate)
@@ -434,17 +441,31 @@ final class StatsManager {
             }
 
             PerfLog.end("jsonlParsing")
-            return (dailyUsage, projectUsage, recommendations)
+            return (dailyUsage, weekProjects, monthProjects, allTimeProjects, recommendations)
         }.value
 
         // Update SwiftData
         dataManager.batchUpdateDailyUsage(result.0, pricing: pricing)
-        dataManager.replaceProjectUsage(result.1, pricing: pricing)
+        dataManager.replaceProjectUsage(result.1, pricing: pricing)  // Save weekly projects only
 
         // Update in-memory state
         self.dailyUsageFromJSONL = result.0
         self.todayUsage = result.0[today] ?? AggregatedUsage()
-        self.recommendations = result.2
+
+        // Update project costs for all time ranges
+        self.projectCostsWeek = result.1.map { (path, usage) in
+            ProjectUsage(projectPath: path, usage: usage)
+        }.sorted { $0.cost(using: pricing) > $1.cost(using: pricing) }
+
+        self.projectCostsMonth = result.2.map { (path, usage) in
+            ProjectUsage(projectPath: path, usage: usage)
+        }.sorted { $0.cost(using: pricing) > $1.cost(using: pricing) }
+
+        self.projectCostsAllTime = result.3.map { (path, usage) in
+            ProjectUsage(projectPath: path, usage: usage)
+        }.sorted { $0.cost(using: pricing) > $1.cost(using: pricing) }
+
+        self.recommendations = result.4
 
         // Recalculate costs
         calculateCosts()
@@ -488,6 +509,24 @@ final class StatsManager {
             self.usageResponse = response
             self.usageError = nil
             self.subscriptionType = UsageAPI.getSubscriptionType()
+
+            // DEBUG: Log reset times
+            #if DEBUG
+            print("🔍 Quota Reset Times:")
+            if let session = response.fiveHour {
+                print("  Session: \(session.resetsAt) → \(session.resetsAtDate?.description ?? "NIL")")
+            }
+            if let weekly = response.sevenDay {
+                print("  Weekly: \(weekly.resetsAt) → \(weekly.resetsAtDate?.description ?? "NIL")")
+            }
+            if let sonnet = response.sevenDaySonnet {
+                print("  Sonnet: \(sonnet.resetsAt) → \(sonnet.resetsAtDate?.description ?? "NIL")")
+            }
+            if let opus = response.sevenDayOpus {
+                print("  Opus: \(opus.resetsAt) → \(opus.resetsAtDate?.description ?? "NIL")")
+            }
+            #endif
+
             NotificationManager.shared.checkAndSendAlerts(for: response)
         } catch {
             self.usageError = error.localizedDescription

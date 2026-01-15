@@ -62,7 +62,17 @@ final class CachedProjectUsage {
 
     init(projectPath: String, usage: AggregatedUsage, cost: Double) {
         self.projectPath = projectPath
-        self.projectName = (projectPath as NSString).lastPathComponent
+
+        // Use same logic as ProjectUsage.projectName for consistency
+        let lastComponent = (projectPath as NSString).lastPathComponent
+        if projectPath.contains("/var/folders/") && lastComponent == "T" {
+            self.projectName = "Temp Directory"
+        } else if lastComponent.count == 1 && projectPath.contains("/private/") {
+            self.projectName = "System: \(lastComponent)"
+        } else {
+            self.projectName = lastComponent
+        }
+
         self.totalCost = cost
         self.inputTokens = usage.inputTokens
         self.outputTokens = usage.outputTokens

@@ -4,6 +4,7 @@ import Charts
 struct DashboardView: View {
     @Environment(StatsManager.self) private var statsManager: StatsManager?
     @State private var selectedTimeRange: TimeRange = .week
+    @State private var selectedTab: DashboardTab = .overview
 
     enum TimeRange: String, CaseIterable {
         case week = "Week"
@@ -19,12 +20,29 @@ struct DashboardView: View {
         }
     }
 
-    var filteredCosts: [DailyCost] {
-        guard let costs = statsManager?.dailyCosts else { return [] }
-        guard let days = selectedTimeRange.days else { return costs }
+    enum DashboardTab: String, CaseIterable {
+        case overview
+        case projects
+        case models
+        case efficiency
 
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
-        return costs.filter { $0.date >= cutoff }.sorted { $0.date < $1.date }
+        var label: String {
+            switch self {
+            case .overview: return "Overview"
+            case .projects: return "Projects"
+            case .models: return "Models"
+            case .efficiency: return "Efficiency"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .overview: return "chart.bar"
+            case .projects: return "folder"
+            case .models: return "cpu"
+            case .efficiency: return "gauge.with.dots.needle.50percent"
+            }
+        }
     }
 
     var body: some View {
@@ -32,7 +50,35 @@ struct DashboardView: View {
             sidebarView
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220)
         } detail: {
-            detailView
+            TabView(selection: $selectedTab) {
+                // Tab 1: Overview (current charts + table)
+                OverviewTabView(statsManager: statsManager, selectedTimeRange: $selectedTimeRange)
+                    .tabItem {
+                        Label(DashboardTab.overview.label, systemImage: DashboardTab.overview.icon)
+                    }
+                    .tag(DashboardTab.overview)
+
+                // Tab 2: Projects (full list with search and sort)
+                ProjectsTabView(statsManager: statsManager, selectedTimeRange: $selectedTimeRange)
+                    .tabItem {
+                        Label(DashboardTab.projects.label, systemImage: DashboardTab.projects.icon)
+                    }
+                    .tag(DashboardTab.projects)
+
+                // Tab 3: Models (detailed breakdown with table)
+                ModelsTabView(statsManager: statsManager)
+                    .tabItem {
+                        Label(DashboardTab.models.label, systemImage: DashboardTab.models.icon)
+                    }
+                    .tag(DashboardTab.models)
+
+                // Tab 4: Efficiency (cache efficiency and recommendations)
+                EfficiencyTabView(statsManager: statsManager)
+                    .tabItem {
+                        Label(DashboardTab.efficiency.label, systemImage: DashboardTab.efficiency.icon)
+                    }
+                    .tag(DashboardTab.efficiency)
+            }
         }
         .navigationTitle("Claudit")
     }
@@ -65,39 +111,6 @@ struct DashboardView: View {
             }
         }
         .listStyle(.sidebar)
-    }
-
-    private var detailView: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Time Range Picker
-                Picker("Time Range", selection: $selectedTimeRange) {
-                    ForEach(TimeRange.allCases, id: \.self) { range in
-                        Text(range.rawValue).tag(range)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-
-                // Cost Chart
-                CostChartView(dailyCosts: filteredCosts)
-                    .frame(height: 300)
-                    .padding()
-
-                // Model Breakdown Chart
-                if let costs = statsManager?.cumulativeCosts, !costs.isEmpty {
-                    ModelBreakdownView(costs: costs)
-                        .frame(height: 250)
-                        .padding()
-                }
-
-                // Daily Details Table
-                DailyDetailsTable(dailyCosts: filteredCosts)
-                    .padding()
-            }
-            .padding(.vertical)
-        }
-        .background(Color(nsColor: .textBackgroundColor))
     }
 }
 

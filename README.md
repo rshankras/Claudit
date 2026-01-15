@@ -8,7 +8,8 @@ A macOS menubar app that tracks your Claude Code usage costs and helps you optim
 - **Real-time monitoring**: Track costs for Today, This Week, This Month, and All Time
 - **Token usage**: See token counts alongside costs (with K/M/B formatting)
 - **Model breakdown**: View spending per model (Opus, Sonnet, Haiku)
-- **Project insights**: Identify which projects cost the most
+- **Project insights**: Identify which projects cost the most with time range filtering (Week/Month/All Time)
+- **Tab-based dashboard**: Organized views for Overview, Projects, Models, and Efficiency
 
 ### Quota Management
 - **Live quota tracking**: Monitor session (5-hour) and weekly quotas via Anthropic API
@@ -85,20 +86,34 @@ If you have custom pricing or want to adjust calculations:
 ### Menubar Quick View
 
 Click the menubar icon to see:
-- Cost summary cards (Today, Week, Month, All Time)
-- Token usage for each period
-- Quota status with progress bars
-- Cache efficiency metrics
-- Top projects by cost
-- Model breakdown
+- **Quota status**: Session and weekly quotas with progress bars and reset times
+- **Cost summary cards**: Today, Week, Month, All Time with token counts
+- **Top projects**: Top 3-4 projects by cost (this week)
 
 ### Dashboard Window
 
-Click "Dashboard" in the menubar popup to open detailed analytics:
-- **Cost chart**: Daily spending over time
-- **Model breakdown**: Donut chart with detailed cost breakdown
-- **Daily details table**: Date, cost, tokens, messages, sessions, tool calls
-- **Filter by time range**: Last 7, 14, 30 days, or all time
+Click "Dashboard" in the menubar popup to open detailed analytics with 4 organized tabs:
+
+**Overview Tab**
+- Daily cost chart with time range selector (Week/Month/All Time)
+- Model distribution donut chart
+- Daily breakdown table with cost, tokens, messages, sessions, tool calls
+
+**Projects Tab**
+- Full project list with search and sorting
+- Time range selector (Week/Month/All Time) to view project costs over different periods
+- Shows cost, tokens, and percentage of total for each project
+- Filter projects by name and sort by cost, tokens, or name
+
+**Models Tab**
+- Detailed model breakdown with donut chart
+- Comprehensive cost table showing Input, Output, Cache Read, and Cache Write costs per model
+- Token usage breakdown by model
+
+**Efficiency Tab**
+- Cache efficiency metrics (today vs week comparison)
+- Hit rate percentages and savings calculations
+- AI-powered insights and recommendations for cost optimization
 
 ### Settings
 
@@ -111,8 +126,8 @@ Configure:
 
 Claudit is designed for speed:
 - **Initial load**: ~58ms (from SwiftData cache)
-- **Background parsing**: ~1.3s (parses only today's files)
-- **Bootstrap**: ~4s (first run parses full month, then caches)
+- **Background parsing**: ~1-2s (parses today's files + project breakdowns for week/month/all-time)
+- **Bootstrap**: ~4-5s (first run parses full month, then caches)
 
 ## Roadmap
 

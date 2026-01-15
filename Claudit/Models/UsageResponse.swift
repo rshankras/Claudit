@@ -31,7 +31,13 @@ struct UsageLimit: Codable, Sendable {
     }
 
     var resetsAtDate: Date? {
-        ISO8601DateFormatter().date(from: resetsAt)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds,
+            .withColonSeparatorInTimeZone
+        ]
+        return formatter.date(from: resetsAt)
     }
 
     var utilizationPercent: Int {

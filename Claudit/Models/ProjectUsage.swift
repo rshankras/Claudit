@@ -8,9 +8,21 @@ struct ProjectUsage: Identifiable, Sendable {
 
     var id: String { projectPath }
 
-    /// Project name (last path component)
+    /// Project name (last path component, with special handling for system paths)
     var projectName: String {
-        (projectPath as NSString).lastPathComponent
+        let lastComponent = (projectPath as NSString).lastPathComponent
+
+        // Handle macOS temp directories (e.g., /private/var/folders/.../T)
+        if projectPath.contains("/var/folders/") && lastComponent == "T" {
+            return "Temp Directory"
+        }
+
+        // Handle other single-letter system directories that might be confusing
+        if lastComponent.count == 1 && projectPath.contains("/private/") {
+            return "System: \(lastComponent)"
+        }
+
+        return lastComponent
     }
 
     /// Calculate cost using provided pricing (or use cached cost from SwiftData)

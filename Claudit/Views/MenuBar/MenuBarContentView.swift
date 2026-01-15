@@ -16,15 +16,7 @@ struct MenuBarContentView: View {
             Divider()
             costSummaryView
             Divider()
-            cacheEfficiencyView
-            Divider()
             projectBreakdownView
-            Divider()
-            if let manager = statsManager, !manager.recommendations.isEmpty {
-                recommendationsView
-                Divider()
-            }
-            modelBreakdownView
             Divider()
             footerView
         }
@@ -154,98 +146,6 @@ struct MenuBarContentView: View {
         .padding(12)
     }
 
-    private var cacheEfficiencyView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Cache Efficiency")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let manager = statsManager {
-                HStack(spacing: 16) {
-                    // Today's cache efficiency
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 4) {
-                            Text("\(manager.todayCacheHitPercent)%")
-                                .font(.system(.title3, design: .monospaced, weight: .semibold))
-                                .foregroundStyle(cacheColor(for: manager.todayCacheHitPercent))
-                            Text("hit rate")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        if manager.todayCacheSavings > 0 {
-                            Text("Saved \(formatCurrency(manager.todayCacheSavings))")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        }
-                    }
-
-                    Spacer()
-
-                    // This week's cache efficiency
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("This Week")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 4) {
-                            Text("\(manager.weekCacheHitPercent)%")
-                                .font(.system(.title3, design: .monospaced, weight: .semibold))
-                                .foregroundStyle(cacheColor(for: manager.weekCacheHitPercent))
-                            Text("hit rate")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        if manager.weekCacheSavings > 0 {
-                            Text("Saved \(formatCurrency(manager.weekCacheSavings))")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        }
-                    }
-                }
-            } else {
-                Text("No cache data")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(12)
-    }
-
-    private func cacheColor(for percent: Int) -> Color {
-        if percent >= 60 { return .green }
-        if percent >= 30 { return .orange }
-        return .red
-    }
-
-    private var recommendationsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Insights")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let manager = statsManager {
-                ForEach(manager.recommendations) { rec in
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundStyle(.yellow)
-                            .font(.caption)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(rec.detail)
-                                .font(.caption)
-                            Text("Could save ~\(formatCurrency(rec.potentialSavings))")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(12)
-    }
-
     private var projectBreakdownView: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Projects (This Week)")
@@ -292,40 +192,6 @@ struct MenuBarContentView: View {
         .padding(12)
     }
 
-    private var modelBreakdownView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("By Model")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if let costs = statsManager?.cumulativeCosts, !costs.isEmpty {
-                ForEach(costs) { cost in
-                    HStack {
-                        Circle()
-                            .fill(cost.model.color)
-                            .frame(width: 8, height: 8)
-                        Text(cost.model.displayName)
-                            .font(.caption)
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(formatCurrency(cost.totalCost))
-                                .font(.caption.monospacedDigit())
-                                .fontWeight(.semibold)
-                            Text(cost.usage.totalTokens.formatTokenCount())
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } else {
-                Text("No usage data")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(12)
-    }
-
     private var footerView: some View {
         HStack {
             if let lastUpdated = statsManager?.lastUpdated {
@@ -338,8 +204,11 @@ struct MenuBarContentView: View {
 
             Button {
                 openWindow(id: "dashboard")
-                NSApp.activate(ignoringOtherApps: true)
                 dismiss()
+                Task {
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             } label: {
                 Image(systemName: "chart.bar.xaxis")
             }
@@ -348,8 +217,11 @@ struct MenuBarContentView: View {
 
             Button {
                 openSettings()
-                NSApp.activate(ignoringOtherApps: true)
                 dismiss()
+                Task {
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             } label: {
                 Image(systemName: "gear")
             }
@@ -437,10 +309,36 @@ struct QuotaRow: View {
             .frame(height: 6)
 
             if let resetDate = resetDate {
-                Text("Resets \(resetDate, style: .relative)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    Text("Resets in \(formatTimeUntil(resetDate))")
+                        .font(.caption)
+                        .foregroundStyle(.primary.opacity(0.8))
+                        .fontWeight(.medium)
+                }
+                .padding(.top, 2)
             }
+        }
+    }
+
+    private func formatTimeUntil(_ date: Date) -> String {
+        let hours = date.timeIntervalSinceNow / 3600.0
+
+        if hours < 1 {
+            let minutes = Int(hours * 60)
+            return "\(minutes)m"
+        } else if hours < 24 {
+            return "\(Int(hours))h"
+        } else {
+            let days = Int(hours / 24)
+            let remainingHours = Int(hours.truncatingRemainder(dividingBy: 24))
+            if remainingHours == 0 {
+                return "\(days)d"
+            }
+            return "\(days)d \(remainingHours)h"
         }
     }
 }
