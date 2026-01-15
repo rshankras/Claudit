@@ -143,12 +143,12 @@ struct MenuBarContentView: View {
     private var costSummaryView: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                CostCard(title: "Today", cost: statsManager?.todayCost ?? 0)
-                CostCard(title: "This Week", cost: statsManager?.weekCost ?? 0)
+                CostCard(title: "Today", cost: statsManager?.todayCost ?? 0, tokens: statsManager?.todayTokens ?? 0)
+                CostCard(title: "This Week", cost: statsManager?.weekCost ?? 0, tokens: statsManager?.weekTokens ?? 0)
             }
             HStack(spacing: 12) {
-                CostCard(title: "This Month", cost: statsManager?.monthCost ?? 0)
-                CostCard(title: "All Time", cost: statsManager?.totalCost ?? 0)
+                CostCard(title: "This Month", cost: statsManager?.monthCost ?? 0, tokens: statsManager?.monthTokens ?? 0)
+                CostCard(title: "All Time", cost: statsManager?.totalCost ?? 0, tokens: statsManager?.totalTokens ?? 0)
             }
         }
         .padding(12)
@@ -307,8 +307,14 @@ struct MenuBarContentView: View {
                         Text(cost.model.displayName)
                             .font(.caption)
                         Spacer()
-                        Text(formatCurrency(cost.totalCost))
-                            .font(.caption.monospacedDigit())
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(formatCurrency(cost.totalCost))
+                                .font(.caption.monospacedDigit())
+                                .fontWeight(.semibold)
+                            Text(cost.usage.totalTokens.formatTokenCount())
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             } else {
@@ -379,6 +385,7 @@ struct MenuBarContentView: View {
 struct CostCard: View {
     let title: String
     let cost: Double
+    let tokens: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -387,6 +394,9 @@ struct CostCard: View {
                 .foregroundStyle(.secondary)
             Text(String(format: "$%.2f", cost))
                 .font(.system(.title3, design: .monospaced, weight: .semibold))
+            Text("\(tokens.formatTokenCount()) tokens")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)

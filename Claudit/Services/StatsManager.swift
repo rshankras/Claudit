@@ -149,6 +149,32 @@ final class StatsManager {
         return weekUsage.cacheSavings(using: SettingsManager.shared.modelPricing)
     }
 
+    // MARK: - Token Totals
+
+    var todayTokens: Int {
+        todayUsage.inputTokens + todayUsage.outputTokens +
+        todayUsage.cacheReadTokens + todayUsage.cacheWriteTokens
+    }
+
+    var weekTokens: Int {
+        let usage = aggregatedUsage(since: Date().startOfWeek)
+        return usage.inputTokens + usage.outputTokens +
+               usage.cacheReadTokens + usage.cacheWriteTokens
+    }
+
+    var monthTokens: Int {
+        let usage = aggregatedUsage(since: Date().startOfMonth)
+        return usage.inputTokens + usage.outputTokens +
+               usage.cacheReadTokens + usage.cacheWriteTokens
+    }
+
+    var totalTokens: Int {
+        // Sum from cumulative costs
+        cumulativeCosts.reduce(0) { total, cost in
+            total + cost.usage.totalTokens
+        }
+    }
+
     /// Get aggregated usage since a specific date (combines JSONL + SwiftData)
     private func aggregatedUsage(since startDate: Date) -> AggregatedUsage {
         var result = AggregatedUsage()

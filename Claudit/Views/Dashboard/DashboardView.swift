@@ -40,10 +40,10 @@ struct DashboardView: View {
     private var sidebarView: some View {
         List {
             Section("Summary") {
-                SummaryRow(title: "Today", cost: statsManager?.todayCost ?? 0)
-                SummaryRow(title: "This Week", cost: statsManager?.weekCost ?? 0)
-                SummaryRow(title: "This Month", cost: statsManager?.monthCost ?? 0)
-                SummaryRow(title: "All Time", cost: statsManager?.totalCost ?? 0)
+                SummaryRow(title: "Today", cost: statsManager?.todayCost ?? 0, tokens: statsManager?.todayTokens ?? 0)
+                SummaryRow(title: "This Week", cost: statsManager?.weekCost ?? 0, tokens: statsManager?.weekTokens ?? 0)
+                SummaryRow(title: "This Month", cost: statsManager?.monthCost ?? 0, tokens: statsManager?.monthTokens ?? 0)
+                SummaryRow(title: "All Time", cost: statsManager?.totalCost ?? 0, tokens: statsManager?.totalTokens ?? 0)
             }
 
             Section("By Model") {
@@ -104,14 +104,20 @@ struct DashboardView: View {
 struct SummaryRow: View {
     let title: String
     let cost: Double
+    let tokens: Int
 
     var body: some View {
         HStack {
             Text(title)
             Spacer()
-            Text(String(format: "$%.2f", cost))
-                .font(.system(.body, design: .monospaced))
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: "$%.2f", cost))
+                    .font(.system(.body, design: .monospaced))
+                    .fontWeight(.semibold)
+                Text("\(tokens.formatTokenCount()) tokens")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
@@ -169,6 +175,13 @@ struct DailyDetailsTable: View {
 
                     TableColumn("Cost") { cost in
                         Text(String(format: "$%.2f", cost.totalCost))
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    .width(min: 80, ideal: 100)
+
+                    TableColumn("Tokens") { cost in
+                        let tokens = cost.tokensByModel.values.reduce(0, +)
+                        Text(tokens.formatTokenCount())
                             .font(.system(.body, design: .monospaced))
                     }
                     .width(min: 80, ideal: 100)
