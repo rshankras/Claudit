@@ -54,7 +54,17 @@ final class DataManager {
                 context.autosaveEnabled = true
                 Self.logger.info("SwiftData recreated successfully")
             } catch {
-                fatalError("Failed to create ModelContainer after reset: \(error)")
+                // Last resort: use in-memory storage (data won't persist across launches)
+                Self.logger.error("SwiftData persistent storage failed, using in-memory: \(error.localizedDescription)")
+                let inMemoryConfig = ModelConfiguration(isStoredInMemoryOnly: true)
+                do {
+                    container = try ModelContainer(for: schema, configurations: inMemoryConfig)
+                    context = ModelContext(container)
+                    context.autosaveEnabled = false
+                } catch {
+                    // This should never happen with in-memory storage
+                    fatalError("Failed to create in-memory ModelContainer: \(error)")
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 import ServiceManagement
 import SwiftUI
 
@@ -8,6 +9,7 @@ final class SettingsManager {
     /// Prefer Environment injection for new code
     static let shared = SettingsManager()
 
+    private static let logger = Logger(subsystem: "com.claudit", category: "settings")
     private let defaults = UserDefaults.standard
     private let pricingKey = "modelPricing"
     private let launchAtLoginKey = "launchAtLogin"
@@ -151,7 +153,7 @@ final class SettingsManager {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            print("Failed to update launch at login: \(error)")
+            Self.logger.error("Failed to update launch at login: \(error.localizedDescription)")
         }
     }
 }
