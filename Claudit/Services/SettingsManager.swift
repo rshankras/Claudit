@@ -1,8 +1,11 @@
 import Foundation
 import ServiceManagement
+import SwiftUI
 
 @Observable
 final class SettingsManager {
+    /// Shared instance for backward compatibility during migration
+    /// Prefer Environment injection for new code
     static let shared = SettingsManager()
 
     private let defaults = UserDefaults.standard
@@ -12,6 +15,7 @@ final class SettingsManager {
     private let showQuotaInMenubarKey = "showQuotaInMenubar"
     private let alertsEnabledKey = "alertsEnabled"
     private let alertThresholdsKey = "alertThresholds"
+    private let hasSeenOnboardingKey = "hasSeenOnboarding"
 
     var modelPricing: [ClaudeModel: ModelPricing] {
         didSet {
@@ -57,6 +61,13 @@ final class SettingsManager {
         }
     }
 
+    /// Whether user has seen the onboarding screen
+    var hasSeenOnboarding: Bool {
+        didSet {
+            defaults.set(hasSeenOnboarding, forKey: hasSeenOnboardingKey)
+        }
+    }
+
     private init() {
         self.launchAtLogin = defaults.bool(forKey: launchAtLoginKey)
 
@@ -83,6 +94,8 @@ final class SettingsManager {
         } else {
             self.alertThresholds = [75, 90, 95]  // Default thresholds
         }
+
+        self.hasSeenOnboarding = defaults.bool(forKey: hasSeenOnboardingKey)
 
         if let data = defaults.data(forKey: pricingKey),
            let decoded = try? JSONDecoder().decode([String: ModelPricing].self, from: data) {
@@ -146,4 +159,17 @@ final class SettingsManager {
 extension Notification.Name {
     static let pricingChanged = Notification.Name("pricingChanged")
     static let quotaSettingsChanged = Notification.Name("quotaSettingsChanged")
+}
+
+// MARK: - Environment Support
+
+private struct SettingsManagerKey: EnvironmentKey {
+    static let defaultValue = SettingsManager.shared
+}
+
+extension EnvironmentValues {
+    var settingsManager: SettingsManager {
+        get { self[SettingsManagerKey.self] }
+        set { self[SettingsManagerKey.self] = newValue }
+    }
 }

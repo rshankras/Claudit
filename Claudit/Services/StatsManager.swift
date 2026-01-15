@@ -116,7 +116,7 @@ final class StatsManager {
         case .warning:
             let projectedFormatted = formatHours(projected)
             let resetFormatted = formatHours(reset)
-            return "At current pace: ~\(projectedFormatted) until limit (resets in \(resetFormatted))"
+            return "~\(projectedFormatted) until limit (resets \(resetFormatted))"
         case .critical:
             let projectedFormatted = formatHours(projected)
             return "Critical: ~\(projectedFormatted) until limit!"
@@ -124,18 +124,7 @@ final class StatsManager {
     }
 
     private func formatHours(_ hours: Double) -> String {
-        if hours < 1 {
-            return "\(Int(hours * 60))m"
-        } else if hours < 24 {
-            return "\(Int(hours))h"
-        } else {
-            let days = Int(hours / 24)
-            let remainingHours = Int(hours.truncatingRemainder(dividingBy: 24))
-            if remainingHours == 0 {
-                return "\(days)d"
-            }
-            return "\(days)d \(remainingHours)h"
-        }
+        (hours * 3600.0).formattedDuration
     }
 
     // Cache efficiency (today)
@@ -255,6 +244,15 @@ final class StatsManager {
         }
     }
 
+    /// Call this before the StatsManager is deallocated to clean up resources
+    func cleanup() {
+        if let observer = pricingObserver {
+            NotificationCenter.default.removeObserver(observer)
+            pricingObserver = nil
+        }
+        stopWatching()
+    }
+
     func startWatching() {
         loadStats()
         setupFileWatcher()
@@ -360,21 +358,21 @@ final class StatsManager {
         // Check if we need to bootstrap historical data (less than 7 days in SwiftData)
         let needsBootstrap = dailyCosts.count < 7
 
-        // Parse in background with a fresh parser instance (avoids actor isolation issues)
+        // Parse in background with a fresh parser instance
         let result = await Task.detached(priority: .utility) {
             let parser = JSONLParser()
 
             // Daily usage: if bootstrapping, parse full month; otherwise just today
             let dailyStart = needsBootstrap ? monthStart : today
-            let dailyUsage = parser.dailyUsage(from: dailyStart, to: endDate)
+            let dailyUsage = await parser.dailyUsage(from: dailyStart, to: endDate)
 
             // Project usage: parse for WEEK, MONTH, and ALL TIME
-            let weekProjects = parser.usageByProject(from: weekStart, to: endDate)
-            let monthProjects = parser.usageByProject(from: monthStart, to: endDate)
-            let allTimeProjects = parser.usageByProject(from: Date.distantPast, to: endDate)
+            let weekProjects = await parser.usageByProject(from: weekStart, to: endDate)
+            let monthProjects = await parser.usageByProject(from: monthStart, to: endDate)
+            let allTimeProjects = await parser.usageByProject(from: Date.distantPast, to: endDate)
 
             // Recommendations: parse only TODAY
-            let todayEntries = parser.entries(from: today, to: endDate)
+            let todayEntries = await parser.entries(from: today, to: endDate)
 
             // Analyze recommendations
             var recommendations: [ModelRecommendation] = []

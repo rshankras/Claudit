@@ -32,9 +32,7 @@ final class CachedDailyUsage {
     }
 
     static func key(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        DateFormatters.yyyyMMdd.string(from: date)
     }
 
     var costByModel: [ClaudeModel: Double] {

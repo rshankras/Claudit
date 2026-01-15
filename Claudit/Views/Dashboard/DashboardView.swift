@@ -3,8 +3,11 @@ import Charts
 
 struct DashboardView: View {
     @Environment(StatsManager.self) private var statsManager: StatsManager?
+    @Environment(\.settingsManager) private var settings
     @State private var selectedTimeRange: TimeRange = .week
     @State private var selectedTab: DashboardTab = .overview
+    @State private var showExportAlert = false
+    @State private var exportAlertMessage = ""
 
     enum TimeRange: String, CaseIterable {
         case week = "Week"
@@ -81,6 +84,103 @@ struct DashboardView: View {
             }
         }
         .navigationTitle("Claudit")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        exportDailyUsage()
+                    } label: {
+                        Label("Export Daily Usage", systemImage: "calendar")
+                    }
+
+                    Button {
+                        exportProjects()
+                    } label: {
+                        Label("Export Projects", systemImage: "folder")
+                    }
+
+                    Button {
+                        exportSummary()
+                    } label: {
+                        Label("Export Summary", systemImage: "doc.text")
+                    }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+                .disabled(statsManager == nil)
+            }
+        }
+        .alert("Export", isPresented: $showExportAlert) {
+            Button("OK") {}
+        } message: {
+            Text(exportAlertMessage)
+        }
+    }
+
+    // MARK: - Export Functions
+
+    private func exportDailyUsage() {
+        guard let stats = statsManager else { return }
+
+        Task {
+            do {
+                let csv = try ExportManager.exportDailyUsage(stats.dailyCosts, pricing: settings.modelPricing)
+                let dateStr = DateFormatters.yyyyMMdd.string(from: Date())
+                let success = await ExportManager.saveCSV(content: csv, suggestedName: "claudit-daily-usage-\(dateStr).csv")
+                if success {
+                    exportAlertMessage = "Daily usage exported successfully."
+                    showExportAlert = true
+                }
+            } catch {
+                exportAlertMessage = "Export failed: \(error.localizedDescription)"
+                showExportAlert = true
+            }
+        }
+    }
+
+    private func exportProjects() {
+        guard let stats = statsManager else { return }
+
+        Task {
+            do {
+                let projects: [ProjectUsage]
+                switch selectedTimeRange {
+                case .week: projects = stats.projectCostsWeek
+                case .month: projects = stats.projectCostsMonth
+                case .all: projects = stats.projectCostsAllTime
+                }
+
+                let csv = try ExportManager.exportProjectUsage(projects, pricing: settings.modelPricing)
+                let dateStr = DateFormatters.yyyyMMdd.string(from: Date())
+                let success = await ExportManager.saveCSV(content: csv, suggestedName: "claudit-projects-\(selectedTimeRange.rawValue.lowercased())-\(dateStr).csv")
+                if success {
+                    exportAlertMessage = "Project usage exported successfully."
+                    showExportAlert = true
+                }
+            } catch {
+                exportAlertMessage = "Export failed: \(error.localizedDescription)"
+                showExportAlert = true
+            }
+        }
+    }
+
+    private func exportSummary() {
+        guard let stats = statsManager else { return }
+
+        Task {
+            do {
+                let csv = try ExportManager.exportSummary(stats, pricing: settings.modelPricing)
+                let dateStr = DateFormatters.yyyyMMdd.string(from: Date())
+                let success = await ExportManager.saveCSV(content: csv, suggestedName: "claudit-summary-\(dateStr).csv")
+                if success {
+                    exportAlertMessage = "Summary exported successfully."
+                    showExportAlert = true
+                }
+            } catch {
+                exportAlertMessage = "Export failed: \(error.localizedDescription)"
+                showExportAlert = true
+            }
+        }
     }
 
     private var sidebarView: some View {

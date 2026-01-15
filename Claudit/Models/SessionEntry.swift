@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents a single entry in a Claude Code JSONL session file
-struct SessionEntry: Codable {
+struct SessionEntry: Codable, Sendable {
     let type: String
     let timestamp: String
     let message: SessionMessage?
@@ -17,13 +17,13 @@ struct SessionEntry: Codable {
     }
 }
 
-struct SessionMessage: Codable {
+struct SessionMessage: Codable, Sendable {
     let model: String?
     let role: String?
     let usage: SessionUsage?
 }
 
-struct SessionUsage: Codable {
+struct SessionUsage: Codable, Sendable {
     let inputTokens: Int
     let outputTokens: Int
     let cacheCreationInputTokens: Int?
@@ -50,7 +50,7 @@ struct SessionUsage: Codable {
     }
 }
 
-struct CacheCreation: Codable {
+struct CacheCreation: Codable, Sendable {
     let ephemeral5mInputTokens: Int?
     let ephemeral1hInputTokens: Int?
 

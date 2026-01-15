@@ -1,17 +1,19 @@
 import Foundation
+import os.log
 
 /// Parses Claude Code JSONL session files for real-time usage data
-/// Thread-safe - can be called from any actor context
-final class JSONLParser: @unchecked Sendable {
+/// Thread-safe via Swift actor isolation
+actor JSONLParser {
     private let projectsPath: String
     private let decoder = JSONDecoder()
     private let isoFormatter: ISO8601DateFormatter
 
-    // Cache for incremental parsing (protected by lock)
-    private let lock = NSLock()
+    // Cache for incremental parsing (actor-isolated, no lock needed)
     private var fileModTimes: [String: Date] = [:]
     private var cachedDailyUsage: [Date: AggregatedUsage] = [:]
     private var lastFullParseDate: Date?
+
+    private static let logger = Logger(subsystem: "com.claudit", category: "parser")
 
     init() {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
@@ -59,9 +61,6 @@ final class JSONLParser: @unchecked Sendable {
 
     /// Get daily usage breakdown for a date range (cached with change detection)
     func dailyUsage(from startDate: Date, to endDate: Date) -> [Date: AggregatedUsage] {
-        lock.lock()
-        defer { lock.unlock() }
-
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
@@ -73,7 +72,7 @@ final class JSONLParser: @unchecked Sendable {
         }
 
         // Find files that have changed since last parse
-        let changedFiles = findChangedFilesLocked(from: startDate, to: endDate)
+        let changedFiles = findChangedFiles(from: startDate, to: endDate)
 
         if changedFiles.isEmpty && !cachedDailyUsage.isEmpty {
             return cachedDailyUsage
@@ -146,8 +145,8 @@ final class JSONLParser: @unchecked Sendable {
         return files
     }
 
-    /// Find files that have been modified since last check (call while holding lock)
-    private func findChangedFilesLocked(from startDate: Date, to endDate: Date) -> [String] {
+    /// Find files that have been modified since last check
+    private func findChangedFiles(from startDate: Date, to endDate: Date) -> [String] {
         var changedFiles: [String] = []
 
         guard let projectDirs = try? FileManager.default.contentsOfDirectory(atPath: projectsPath) else {
@@ -179,9 +178,8 @@ final class JSONLParser: @unchecked Sendable {
                 // Skip old files
                 if modDate < startDate { continue }
 
-                // Check if file has changed since last parse
-                let lastModTime = fileModTimes[filePath]
-                if lastModTime == nil || modDate > lastModTime! {
+                // Check if file has changed since last parse (safe optional handling)
+                if fileModTimes[filePath].map({ modDate > $0 }) ?? true {
                     changedFiles.append(filePath)
                     fileModTimes[filePath] = modDate
                 }
@@ -193,11 +191,9 @@ final class JSONLParser: @unchecked Sendable {
 
     /// Force a full re-parse (clears cache)
     func invalidateCache() {
-        lock.lock()
         cachedDailyUsage.removeAll()
         fileModTimes.removeAll()
         lastFullParseDate = nil
-        lock.unlock()
     }
 
     /// Get usage aggregated by project (cwd) for a date range
@@ -264,6 +260,7 @@ final class JSONLParser: @unchecked Sendable {
     /// Parse a single JSONL file and return entries within the date range
     private func parseFile(at path: String, from startDate: Date, to endDate: Date) -> [SessionEntry] {
         guard let content = try? String(contentsOfFile: path, encoding: .utf8) else {
+            Self.logger.debug("Could not read file: \(path)")
             return []
         }
 
@@ -271,8 +268,11 @@ final class JSONLParser: @unchecked Sendable {
         let lines = content.components(separatedBy: .newlines)
 
         for line in lines where !line.isEmpty {
-            guard let data = line.data(using: .utf8),
-                  let entry = try? decoder.decode(SessionEntry.self, from: data) else {
+            guard let data = line.data(using: .utf8) else { continue }
+
+            // Silently skip lines that don't decode to SessionEntry
+            // (user messages, system events, summary entries, etc.)
+            guard let entry = try? decoder.decode(SessionEntry.self, from: data) else {
                 continue
             }
 

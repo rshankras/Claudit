@@ -1,10 +1,13 @@
 import Foundation
 import SwiftData
+import SwiftUI
 import os.log
 
 /// Manages SwiftData persistence for cached usage data
 @MainActor
 final class DataManager {
+    /// Shared instance for backward compatibility during migration
+    /// Prefer Environment injection for new code
     static let shared = DataManager()
 
     private static let logger = Logger(subsystem: "com.claudit", category: "data")
@@ -154,7 +157,11 @@ final class DataManager {
         for (date, usage) in dailyUsage {
             upsertDailyUsage(date: date, usage: usage, pricing: pricing)
         }
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            Self.logger.error("Failed to save batch daily usage: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Project Usage
@@ -183,7 +190,11 @@ final class DataManager {
             let cached = CachedProjectUsage(projectPath: path, usage: usage, cost: cost)
             context.insert(cached)
         }
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            Self.logger.error("Failed to save project usage: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Cleanup
@@ -200,6 +211,24 @@ final class DataManager {
                 context.delete(item)
             }
         }
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            Self.logger.error("Failed to save after cleanup: \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - Environment Support
+
+private struct DataManagerKey: EnvironmentKey {
+    @MainActor static let defaultValue = DataManager.shared
+}
+
+extension EnvironmentValues {
+    @MainActor
+    var dataManager: DataManager {
+        get { self[DataManagerKey.self] }
+        set { self[DataManagerKey.self] = newValue }
     }
 }

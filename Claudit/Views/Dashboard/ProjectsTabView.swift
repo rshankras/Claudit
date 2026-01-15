@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectsTabView: View {
     let statsManager: StatsManager?
     @Binding var selectedTimeRange: DashboardView.TimeRange
+    @Environment(\.settingsManager) private var settings
     @State private var sortOrder: ProjectSortOrder = .costDescending
     @State private var searchText = ""
 
@@ -40,7 +41,7 @@ struct ProjectsTabView: View {
     }
 
     var filteredProjects: [ProjectUsage] {
-        let pricing = SettingsManager.shared.modelPricing
+        let pricing = settings.modelPricing
 
         // Apply search filter
         let filtered = searchText.isEmpty
@@ -127,7 +128,7 @@ struct ProjectsTabView: View {
                     .width(min: 150, ideal: 250)
 
                     TableColumn("Cost") { project in
-                        Text(String(format: "$%.2f", project.cost(using: SettingsManager.shared.modelPricing)))
+                        Text(String(format: "$%.2f", project.cost(using: settings.modelPricing)))
                             .monospacedDigit()
                             .fontWeight(.semibold)
                     }
@@ -142,7 +143,7 @@ struct ProjectsTabView: View {
 
                     TableColumn("% of Total") { project in
                         let totalCost = getTotalCostForRange()
-                        let percent = totalCost > 0 ? (project.cost(using: SettingsManager.shared.modelPricing) / totalCost) * 100 : 0
+                        let percent = totalCost > 0 ? (project.cost(using: settings.modelPricing) / totalCost) * 100 : 0
                         Text(String(format: "%.1f%%", percent))
                             .monospacedDigit()
                     }

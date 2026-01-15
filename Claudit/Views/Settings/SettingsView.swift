@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(StatsManager.self) private var statsManager: StatsManager?
-    private var settings = SettingsManager.shared
+    @Environment(\.settingsManager) private var settings
     @State private var showResetConfirmation = false
 
     var body: some View {
@@ -72,9 +72,63 @@ struct SettingsView: View {
                     .buttonStyle(.borderedProminent)
                 }
             }
+
+            Section("Privacy & Data") {
+                DisclosureGroup {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Local session files")
+                                    .font(.callout)
+                                Text("~/.claude/projects/*.jsonl")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "folder")
+                                .foregroundStyle(.blue)
+                        }
+
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Claude Code OAuth token")
+                                    .font(.callout)
+                                Text("From macOS Keychain (read-only)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "key")
+                                .foregroundStyle(.orange)
+                        }
+
+                        Divider()
+
+                        Text("Your token is only used to fetch YOUR quota from Anthropic's API. All cost calculations happen locally. No data is sent to third parties.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                } label: {
+                    Label("What data does Claudit access?", systemImage: "hand.raised")
+                }
+            }
+
+            Section("About") {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text(Bundle.main.appVersion)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("Claudit is an unofficial tool for tracking Claude Code usage. It is not affiliated with or endorsed by Anthropic.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 620)
+        .frame(width: 450, height: 750)
         .confirmationDialog(
             "Reset Pricing",
             isPresented: $showResetConfirmation

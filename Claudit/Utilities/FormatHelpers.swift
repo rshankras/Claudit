@@ -16,3 +16,35 @@ extension Int {
         }
     }
 }
+
+/// Bundle version helpers
+extension Bundle {
+    var appVersion: String {
+        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+}
+
+/// Time interval formatting for duration display
+extension TimeInterval {
+    /// Format duration in human-readable form
+    /// Examples: 45 min → "45m", 3 hours → "3h", 2 days 5 hours → "2d 5h"
+    var formattedDuration: String {
+        let hours = self / 3600.0
+
+        if hours < 1 {
+            let minutes = Int(hours * 60)
+            return "\(max(1, minutes))m"
+        } else if hours < 24 {
+            return "\(Int(hours))h"
+        } else {
+            let days = Int(hours / 24)
+            let remainingHours = Int(hours.truncatingRemainder(dividingBy: 24))
+            if remainingHours == 0 {
+                return "\(days)d"
+            }
+            return "\(days)d \(remainingHours)h"
+        }
+    }
+}

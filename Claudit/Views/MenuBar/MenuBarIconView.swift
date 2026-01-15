@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MenuBarIconView: View {
     @Environment(StatsManager.self) private var statsManager: StatsManager?
-    private var settings = SettingsManager.shared
+    @Environment(\.settingsManager) private var settings
 
     var body: some View {
         HStack(spacing: 4) {

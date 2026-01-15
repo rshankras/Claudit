@@ -2,11 +2,10 @@ import SwiftUI
 
 struct MenuBarContentView: View {
     @Environment(StatsManager.self) private var statsManager: StatsManager?
+    @Environment(\.settingsManager) private var settings
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     @Environment(\.dismiss) private var dismiss
-
-    private var settings = SettingsManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -204,11 +203,8 @@ struct MenuBarContentView: View {
 
             Button {
                 openWindow(id: "dashboard")
+                NSApp.activate(ignoringOtherApps: true)
                 dismiss()
-                Task {
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                    NSApp.activate(ignoringOtherApps: true)
-                }
             } label: {
                 Image(systemName: "chart.bar.xaxis")
             }
@@ -217,11 +213,8 @@ struct MenuBarContentView: View {
 
             Button {
                 openSettings()
+                NSApp.activate(ignoringOtherApps: true)
                 dismiss()
-                Task {
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                    NSApp.activate(ignoringOtherApps: true)
-                }
             } label: {
                 Image(systemName: "gear")
             }
@@ -325,20 +318,6 @@ struct QuotaRow: View {
     }
 
     private func formatTimeUntil(_ date: Date) -> String {
-        let hours = date.timeIntervalSinceNow / 3600.0
-
-        if hours < 1 {
-            let minutes = Int(hours * 60)
-            return "\(minutes)m"
-        } else if hours < 24 {
-            return "\(Int(hours))h"
-        } else {
-            let days = Int(hours / 24)
-            let remainingHours = Int(hours.truncatingRemainder(dividingBy: 24))
-            if remainingHours == 0 {
-                return "\(days)d"
-            }
-            return "\(days)d \(remainingHours)h"
-        }
+        date.timeIntervalSinceNow.formattedDuration
     }
 }
