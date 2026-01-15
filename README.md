@@ -35,9 +35,20 @@ A macOS menubar app that tracks your Claude Code usage costs and helps you optim
 
 ## Screenshots
 
-<!-- Add screenshots here -->
-<!-- ![Menubar](screenshots/menubar.png) -->
-<!-- ![Dashboard](screenshots/dashboard.png) -->
+### Menu Bar Quick View
+![Menu Bar](https://www.rshankar.com/assets/images/claudit/menu-bar.png)
+
+### Dashboard - Overview
+![Dashboard Overview](https://www.rshankar.com/assets/images/claudit/dashboard-overview.png)
+
+### Dashboard - Projects
+![Projects Tab](https://www.rshankar.com/assets/images/claudit/dashboard-projects.png)
+
+### Dashboard - Models
+![Models Tab](https://www.rshankar.com/assets/images/claudit/dashboard-models.png)
+
+### Dashboard - Efficiency
+![Efficiency Tab](https://www.rshankar.com/assets/images/claudit/dashboard-efficiency.png)
 
 ## Requirements
 
