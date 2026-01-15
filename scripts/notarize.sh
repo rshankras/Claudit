@@ -7,19 +7,25 @@ set -e
 # Configuration - Update these values
 APP_NAME="Claudit"
 SCHEME="Claudit"
-TEAM_ID="${TEAM_ID:-YOUR_TEAM_ID}"  # Set via environment or update here
+TEAM_ID="${TEAM_ID:?Error: TEAM_ID environment variable required}"
 APPLE_ID="${APPLE_ID:-your@email.com}"  # Set via environment
 APP_PASSWORD="${APP_PASSWORD:-}"  # App-specific password, set via environment
 
 # Paths
 BUILD_DIR="build"
 ARCHIVE_PATH="$BUILD_DIR/$APP_NAME.xcarchive"
+EXPORT_OPTIONS="$BUILD_DIR/ExportOptions.plist"
 APP_PATH="$BUILD_DIR/$APP_NAME.app"
 ZIP_PATH="$BUILD_DIR/$APP_NAME.zip"
 DMG_PATH="$BUILD_DIR/$APP_NAME.dmg"
 
 echo "=== Claudit Build & Notarization Script ==="
 echo ""
+
+# Create ExportOptions.plist with actual Team ID
+echo "Preparing export options with Team ID..."
+mkdir -p "$BUILD_DIR"
+sed "s/REPLACE_WITH_YOUR_TEAM_ID/$TEAM_ID/g" scripts/ExportOptions.plist > "$EXPORT_OPTIONS"
 
 # Step 1: Clean and Archive
 echo "Step 1: Building archive..."
@@ -34,7 +40,7 @@ echo "Step 2: Exporting app..."
 xcodebuild -exportArchive \
     -archivePath "$ARCHIVE_PATH" \
     -exportPath "$BUILD_DIR" \
-    -exportOptionsPlist scripts/ExportOptions.plist
+    -exportOptionsPlist "$EXPORT_OPTIONS"
 
 # Step 3: Create ZIP for notarization
 echo "Step 3: Creating ZIP for notarization..."
