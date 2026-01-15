@@ -1,32 +1,44 @@
-//
-//  ClauditApp.swift
-//  Claudit
-//
-//  Created by Ravi Shankar on 13/01/26.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct ClauditApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    @State private var statsManager = StatsManager()
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    init() {
+        PerfLog.start("appInit")
+    }
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        // Menubar
+        MenuBarExtra {
+            MenuBarContentView()
+                .environment(statsManager)
+                .onAppear { PerfLog.end("menuOpen") }
+        } label: {
+            MenuBarIconView()
+                .environment(statsManager)
+                .task {
+                    PerfLog.end("appInit")
+                    PerfLog.start("startWatching")
+                    statsManager.startWatching()
+                    PerfLog.end("startWatching")
+                }
+                .onTapGesture { PerfLog.start("menuOpen") }
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.window)
+
+        // Dashboard Window
+        Window("Claudit Dashboard", id: "dashboard") {
+            DashboardView()
+                .environment(statsManager)
+        }
+        .defaultSize(width: 900, height: 700)
+        .windowResizability(.contentMinSize)
+
+        // Settings
+        Settings {
+            SettingsView()
+                .environment(statsManager)
+        }
     }
 }
