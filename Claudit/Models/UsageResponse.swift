@@ -23,7 +23,7 @@ struct UsageResponse: Codable, Sendable {
 
 struct UsageLimit: Codable, Sendable {
     let utilization: Double
-    let resetsAt: String
+    let resetsAt: String?  // API can return null for some quotas
 
     enum CodingKeys: String, CodingKey {
         case utilization
@@ -31,6 +31,7 @@ struct UsageLimit: Codable, Sendable {
     }
 
     var resetsAtDate: Date? {
+        guard let resetsAt else { return nil }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [
             .withInternetDateTime,
