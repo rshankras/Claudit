@@ -28,6 +28,7 @@ struct DashboardView: View {
         case projects
         case models
         case efficiency
+        case insights
 
         var label: String {
             switch self {
@@ -35,6 +36,7 @@ struct DashboardView: View {
             case .projects: return "Projects"
             case .models: return "Models"
             case .efficiency: return "Efficiency"
+            case .insights: return "Insights"
             }
         }
 
@@ -44,6 +46,7 @@ struct DashboardView: View {
             case .projects: return "folder"
             case .models: return "cpu"
             case .efficiency: return "gauge.with.dots.needle.50percent"
+            case .insights: return "brain.head.profile"
             }
         }
     }
@@ -81,6 +84,13 @@ struct DashboardView: View {
                         Label(DashboardTab.efficiency.label, systemImage: DashboardTab.efficiency.icon)
                     }
                     .tag(DashboardTab.efficiency)
+
+                // Tab 5: Insights (session analysis from facets)
+                InsightsTabView(statsManager: statsManager)
+                    .tabItem {
+                        Label(DashboardTab.insights.label, systemImage: DashboardTab.insights.icon)
+                    }
+                    .tag(DashboardTab.insights)
             }
         }
         .navigationTitle("Claudit")

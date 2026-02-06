@@ -25,6 +25,10 @@ final class StatsManager {
     // Model usage recommendations (today)
     private(set) var recommendations: [ModelRecommendation] = []
 
+    // Session insights (from facets)
+    private(set) var sessionInsights: [SessionInsight] = []
+    private(set) var insightsSummary: InsightsSummary?
+
     // Summary
     private(set) var todayCost: Double = 0
     private(set) var weekCost: Double = 0
@@ -434,7 +438,11 @@ final class StatsManager {
                 }
             }
 
-            return (dailyUsage, weekProjects, monthProjects, allTimeProjects, recommendations)
+            // Load session insights (lightweight — small JSON files)
+            let (insights, lastModified) = InsightsParser.loadInsights()
+            let insightsSummary = InsightsParser.summarize(insights, lastModified: lastModified)
+
+            return (dailyUsage, weekProjects, monthProjects, allTimeProjects, recommendations, insights, insightsSummary)
         }.value
 
         // Update SwiftData
@@ -459,6 +467,8 @@ final class StatsManager {
         }.sorted { $0.cost(using: pricing) > $1.cost(using: pricing) }
 
         self.recommendations = result.4
+        self.sessionInsights = result.5
+        self.insightsSummary = result.6
 
         // Recalculate costs
         calculateCosts()
